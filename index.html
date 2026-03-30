@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>식사 플래너</title>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --surface2: #f0f0ee;
+    --border: #e2e2de;
+    --border-light: #d0d0cc;
+    --accent: #222222;
+    --text: #1a1a1a;
+    --text-muted: #888880;
+    --text-dim: #c8c8c4;
+    --lunch: #2d7a62;
+    --lunch-dim: rgba(45, 122, 98, 0.1);
+    --dinner: #7a2d6a;
+    --dinner-dim: rgba(122, 45, 106, 0.1);
+    --radius: 4px;
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+font-family: ‘Noto Sans KR’, sans-serif;
+background: var(–bg);
+color: var(–text);
+min-height: 100vh;
+}
+
+.header {
+padding: 28px 40px 20px;
+border-bottom: 1px solid var(–border);
+display: flex;
+align-items: center;
+justify-content: space-between;
+position: sticky;
+top: 0;
+background: var(–bg);
+z-index: 100;
+flex-wrap: wrap;
+gap: 16px;
+}
+
+.header-left h1 {
+font-family: ‘Gowun Batang’, serif;
+font-size: 24px;
+font-weight: 700;
+color: var(–accent);
+}
+
+.header-left p {
+font-size: 10px;
+color: var(–text-muted);
+margin-top: 3px;
+letter-spacing: 2px;
+text-transform: uppercase;
+}
+
+.header-right {
+display: flex;
+align-items: center;
+gap: 24px;
+flex-wrap: wrap;
+}
+
+.legend { display: flex; gap: 14px; }
+
+.legend-item {
+display: flex;
+align-items: center;
+gap: 5px;
+font-size: 11px;
+color: var(–text-muted);
+}
+
+.legend-dot { width: 7px; height: 7px; border-radius: 2px; }
+.legend-dot.lunch { background: var(–lunch); }
+.legend-dot.dinner { background: var(–dinner); }
+
+.month-nav { display: flex; align-items: center; gap: 16px; }
+
+.month-nav button {
+background: none;
+border: 1px solid var(–border-light);
+color: var(–text-muted);
+width: 30px; height: 30px;
+border-radius: var(–radius);
+cursor: pointer;
+font-size: 15px;
+display: flex; align-items: center; justify-content: center;
+transition: all 0.2s;
+}
+
+.month-nav button:hover { border-color: var(–accent); color: var(–accent); }
+
+.month-label {
+font-family: ‘Gowun Batang’, serif;
+font-size: 17px;
+color: var(–text);
+min-width: 110px;
+text-align: center;
+}
+
+.calendar-wrapper { padding: 24px 40px 90px; }
+
+.weekdays {
+display: grid;
+grid-template-columns: repeat(7, 1fr);
+gap: 1px;
+margin-bottom: 1px;
+}
+
+.weekday {
+padding: 10px 0;
+text-align: center;
+font-size: 10px;
+letter-spacing: 2px;
+color: var(–text-dim);
+}
+
+.weekday:first-child { color: #c0392b; }
+.weekday:last-child { color: #2472a4; }
+
+.calendar-grid {
+display: grid;
+grid-template-columns: repeat(7, 1fr);
+gap: 1px;
+background: var(–border);
+border: 1px solid var(–border);
+border-radius: 6px;
+overflow: hidden;
+}
+
+.day-cell {
+background: var(–surface);
+min-height: 110px;
+padding: 10px;
+position: relative;
+cursor: pointer;
+transition: background 0.15s;
+}
+
+.day-cell:hover { background: var(–surface2); }
+
+.day-cell.empty { background: var(–bg); cursor: default; }
+
+.day-num {
+font-size: 12px;
+font-weight: 500;
+color: var(–text-muted);
+margin-bottom: 7px;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+width: 22px; height: 22px;
+}
+
+.day-cell.today .day-num {
+background: var(–accent);
+color: #fff !important;
+border-radius: 50%;
+}
+
+.day-cell.sunday .day-num { color: #c0392b; }
+.day-cell.saturday .day-num { color: #2472a4; }
+
+.meal-entries { display: flex; flex-direction: column; gap: 3px; }
+
+.meal-tag {
+display: flex;
+align-items: center;
+gap: 4px;
+padding: 3px 5px;
+border-radius: 2px;
+font-size: 10px;
+line-height: 1.4;
+}
+
+.meal-tag.lunch {
+background: var(–lunch-dim);
+border-left: 2px solid var(–lunch);
+color: #1d6b52;
+}
+
+.meal-tag.dinner {
+background: var(–dinner-dim);
+border-left: 2px solid var(–dinner);
+color: #6b1d5c;
+}
+
+.meal-label { font-size: 8px; opacity: 0.6; flex-shrink: 0; font-weight: 500; }
+
+.meal-text {
+font-size: 10px;
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+max-width: 100%;
+}
+
+.add-hint {
+position: absolute;
+bottom: 7px; right: 8px;
+font-size: 14px;
+color: var(–text-dim);
+opacity: 0;
+transition: opacity 0.15s;
+}
+
+.day-cell:hover:not(.empty) .add-hint { opacity: 1; }
+
+/* Modal */
+.modal-backdrop {
+position: fixed; inset: 0;
+background: rgba(0,0,0,0.22);
+display: none;
+align-items: center; justify-content: center;
+z-index: 200;
+backdrop-filter: blur(3px);
+}
+
+.modal-backdrop.open { display: flex; animation: fadeIn 0.18s ease; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 10px;
+width: 380px; max-width: 90vw;
+padding: 28px;
+box-shadow: 0 8px 40px rgba(0,0,0,0.1);
+animation: slideUp 0.22s ease;
+position: relative;
+}
+
+@keyframes slideUp {
+from { transform: translateY(14px); opacity: 0; }
+to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-date {
+font-family: ‘Gowun Batang’, serif;
+font-size: 20px;
+color: var(–accent);
+margin-bottom: 3px;
+}
+
+.modal-weekday {
+font-size: 11px;
+color: var(–text-muted);
+letter-spacing: 1px;
+margin-bottom: 22px;
+}
+
+.modal-close {
+position: absolute; top: 18px; right: 18px;
+background: none; border: none;
+color: var(–text-muted);
+cursor: pointer; font-size: 16px;
+transition: color 0.2s; padding: 4px;
+}
+
+.modal-close:hover { color: var(–text); }
+
+.field-group { margin-bottom: 16px; }
+
+.field-label {
+display: flex;
+align-items: center;
+gap: 7px;
+font-size: 10px;
+letter-spacing: 1.5px;
+color: var(–text-muted);
+text-transform: uppercase;
+margin-bottom: 7px;
+}
+
+.field-label-dot { width: 6px; height: 6px; border-radius: 1px; }
+.field-label-dot.lunch { background: var(–lunch); }
+.field-label-dot.dinner { background: var(–dinner); }
+
+.field-input, .field-note {
+width: 100%;
+background: var(–bg);
+border: 1px solid var(–border-light);
+border-radius: var(–radius);
+color: var(–text);
+padding: 9px 12px;
+font-family: ‘Noto Sans KR’, sans-serif;
+font-size: 13px;
+outline: none;
+transition: border-color 0.2s;
+line-height: 1.5;
+}
+
+.field-input:focus, .field-note:focus { border-color: var(–accent); }
+.field-input::placeholder, .field-note::placeholder { color: var(–text-dim); }
+.field-note { resize: none; min-height: 65px; }
+
+.modal-actions {
+display: flex; gap: 8px;
+margin-top: 22px; padding-top: 18px;
+border-top: 1px solid var(–border);
+}
+
+.btn {
+flex: 1; padding: 10px 0;
+border-radius: var(–radius);
+font-family: ‘Noto Sans KR’, sans-serif;
+font-size: 12px; font-weight: 500;
+cursor: pointer; transition: all 0.2s; border: none;
+}
+
+.btn-save { background: var(–accent); color: #fff; }
+.btn-save:hover { background: #444; }
+.btn-clear { background: transparent; border: 1px solid var(–border-light); color: var(–text-muted); }
+.btn-clear:hover { border-color: #c0392b; color: #c0392b; }
+
+/* Stats bar */
+.stats-bar {
+display: flex; gap: 28px;
+padding: 14px 40px;
+border-top: 1px solid var(–border);
+background: var(–surface);
+position: fixed; bottom: 0; left: 0; right: 0;
+align-items: center; flex-wrap: wrap;
+box-shadow: 0 -1px 8px rgba(0,0,0,0.05);
+}
+
+.stat-item { display: flex; align-items: center; gap: 8px; }
+
+.stat-num {
+font-family: ‘Gowun Batang’, serif;
+font-size: 20px; color: var(–accent);
+}
+
+.stat-label { color: var(–text-muted); line-height: 1.4; font-size: 10px; }
+
+.progress-group { display: flex; flex-direction: column; gap: 5px; }
+
+.progress-row { display: flex; align-items: center; gap: 8px; }
+
+.progress-name { font-size: 10px; color: var(–text-muted); width: 22px; }
+
+.progress-bar { width: 100px; height: 3px; background: var(–border); border-radius: 2px; overflow: hidden; }
+
+.progress-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+.progress-fill.lunch { background: var(–lunch); }
+.progress-fill.dinner { background: var(–dinner); }
+
+.progress-count { font-size: 10px; color: var(–text-muted); width: 16px; }
+
+@media (max-width: 680px) {
+.header { padding: 16px 20px; }
+.calendar-wrapper { padding: 14px 8px 90px; }
+.day-cell { min-height: 80px; padding: 6px; }
+.stats-bar { gap: 16px; padding: 12px 20px; }
+}
+</style>
+
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>식사 플래너</h1>
+    <p>Monthly Meal Planner</p>
+  </div>
+  <div class="header-right">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot lunch"></div> 점심</div>
+      <div class="legend-item"><div class="legend-dot dinner"></div> 저녁</div>
+    </div>
+    <div class="month-nav">
+      <button id="prevBtn">‹</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button id="nextBtn">›</button>
+    </div>
+  </div>
+</div>
+
+<div class="calendar-wrapper">
+  <div class="weekdays">
+    <div class="weekday">일</div>
+    <div class="weekday">월</div>
+    <div class="weekday">화</div>
+    <div class="weekday">수</div>
+    <div class="weekday">목</div>
+    <div class="weekday">금</div>
+    <div class="weekday">토</div>
+  </div>
+  <div class="calendar-grid" id="calendarGrid"></div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-num" id="statTotal">0</div>
+    <div class="stat-label">총 계획된<br>식사</div>
+  </div>
+  <div class="stat-item">
+    <div class="progress-group">
+      <div class="progress-row">
+        <span class="progress-name">점심</span>
+        <div class="progress-bar"><div class="progress-fill lunch" id="lunchBar" style="width:0%"></div></div>
+        <span class="progress-count" id="lunchCount">0</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-name">저녁</span>
+        <div class="progress-bar"><div class="progress-fill dinner" id="dinnerBar" style="width:0%"></div></div>
+        <span class="progress-count" id="dinnerCount">0</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat-item" style="margin-left:auto;">
+    <div class="stat-num" id="statDays">0</div>
+    <div class="stat-label">계획된<br>날짜 수</div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-date" id="modalDate"></div>
+    <div class="modal-weekday" id="modalWeekday"></div>
+
+```
+<div class="field-group">
+  <div class="field-label"><div class="field-label-dot lunch"></div> 점심</div>
+  <input class="field-input" id="lunchInput" placeholder="점심 메뉴 입력..." autocomplete="off">
+</div>
+
+<div class="field-group">
+  <div class="field-label"><div class="field-label-dot dinner"></div> 저녁</div>
+  <input class="field-input" id="dinnerInput" placeholder="저녁 메뉴 입력..." autocomplete="off">
+</div>
+
+<div class="field-group">
+  <div class="field-label" style="margin-bottom:7px;">✎ 메모</div>
+  <textarea class="field-note" id="noteInput" placeholder="추가 메모 (선택사항)..."></textarea>
+</div>
+
+<div class="modal-actions">
+  <button class="btn btn-clear" id="clearBtn">초기화</button>
+  <button class="btn btn-save" id="saveBtn">저장</button>
+</div>
+```
+
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'meal_planner_v1';
+  const WEEKDAYS_KR = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  let currentYear, currentMonth, selectedDate, mealData;
+
+  function loadData() {
+    try { mealData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch { mealData = {}; }
+  }
+
+  function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(mealData)); }
+
+  function getKey(y, m, d) {
+    return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+
+  function init() {
+    loadData();
+    const now = new Date();
+    currentYear = now.getFullYear();
+    currentMonth = now.getMonth();
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    document.getElementById('monthLabel').textContent = `${currentYear}년 ${currentMonth + 1}월`;
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const now = new Date();
+    const todayY = now.getFullYear(), todayM = now.getMonth(), todayD = now.getDate();
+    const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+    let html = '';
+
+    for (let i = 0; i < totalCells; i++) {
+      const dayNum = i - firstDay + 1;
+      const isValid = dayNum >= 1 && dayNum <= daysInMonth;
+      const dow = i % 7;
+      if (!isValid) { html += `<div class="day-cell empty"></div>`; continue; }
+
+      const isToday = currentYear === todayY && currentMonth === todayM && dayNum === todayD;
+      const entry = mealData[getKey(currentYear, currentMonth, dayNum)] || {};
+      let cls = 'day-cell' + (isToday ? ' today' : '') + (dow===0 ? ' sunday' : '') + (dow===6 ? ' saturday' : '');
+
+      let meals = '';
+      if (entry.lunch) meals += `<div class="meal-tag lunch"><span class="meal-label">점</span><span class="meal-text">${esc(entry.lunch)}</span></div>`;
+      if (entry.dinner) meals += `<div class="meal-tag dinner"><span class="meal-label">저</span><span class="meal-text">${esc(entry.dinner)}</span></div>`;
+
+      html += `<div class="${cls}" onclick="openModal(${dayNum})"><div class="day-num">${dayNum}</div><div class="meal-entries">${meals}</div><span class="add-hint">+</span></div>`;
+    }
+
+    grid.innerHTML = html;
+    updateStats();
+  }
+
+  function updateStats() {
+    const days = new Date(currentYear, currentMonth + 1, 0).getDate();
+    let l = 0, d = 0, p = 0;
+    for (let i = 1; i <= days; i++) {
+      const e = mealData[getKey(currentYear, currentMonth, i)] || {};
+      if (e.lunch || e.dinner) p++;
+      if (e.lunch) l++;
+      if (e.dinner) d++;
+    }
+    document.getElementById('statTotal').textContent = l + d;
+    document.getElementById('lunchCount').textContent = l;
+    document.getElementById('dinnerCount').textContent = d;
+    document.getElementById('statDays').textContent = p;
+    document.getElementById('lunchBar').style.width = Math.round(l/days*100) + '%';
+    document.getElementById('dinnerBar').style.width = Math.round(d/days*100) + '%';
+  }
+
+  function openModal(day) {
+    selectedDate = day;
+    const entry = mealData[getKey(currentYear, currentMonth, day)] || {};
+    const dow = new Date(currentYear, currentMonth, day).getDay();
+    document.getElementById('modalDate').textContent = `${currentYear}년 ${currentMonth + 1}월 ${day}일`;
+    document.getElementById('modalWeekday').textContent = WEEKDAYS_KR[dow];
+    document.getElementById('lunchInput').value = entry.lunch || '';
+    document.getElementById('dinnerInput').value = entry.dinner || '';
+    document.getElementById('noteInput').value = entry.note || '';
+    document.getElementById('modalBackdrop').classList.add('open');
+    setTimeout(() => document.getElementById('lunchInput').focus(), 50);
+  }
+
+  function closeModal() {
+    document.getElementById('modalBackdrop').classList.remove('open');
+    selectedDate = null;
+  }
+
+  function saveModal() {
+    const key = getKey(currentYear, currentMonth, selectedDate);
+    const lunch = document.getElementById('lunchInput').value.trim();
+    const dinner = document.getElementById('dinnerInput').value.trim();
+    const note = document.getElementById('noteInput').value.trim();
+    if (lunch || dinner || note) mealData[key] = { lunch, dinner, note };
+    else delete mealData[key];
+    saveData(); renderCalendar(); closeModal();
+  }
+
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  document.getElementById('prevBtn').onclick = () => { currentMonth===0?(currentYear--,currentMonth=11):currentMonth--; renderCalendar(); };
+  document.getElementById('nextBtn').onclick = () => { currentMonth===11?(currentYear++,currentMonth=0):currentMonth++; renderCalendar(); };
+  document.getElementById('saveBtn').onclick = saveModal;
+  document.getElementById('clearBtn').onclick = () => { ['lunchInput','dinnerInput','noteInput'].forEach(id => document.getElementById(id).value=''); };
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('modalBackdrop').onclick = e => { if (e.target===document.getElementById('modalBackdrop')) closeModal(); };
+  document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); if (e.key==='Enter'&&e.metaKey&&selectedDate) saveModal(); });
+
+  init();
+</script>
+
+</body>
+</html>
